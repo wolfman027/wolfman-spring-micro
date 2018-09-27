@@ -2,20 +2,21 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>wolfman-spring-micro</artifactId>
+        <groupId>com.wolfman</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
     <modelVersion>4.0.0</modelVersion>
-
-    <groupId>com.wolfman</groupId>
-    <artifactId>wolfman-spring-micro</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <modules>
-        <module>micro-spring-boot</module>
-        <module>micro-spring-cloud</module>
-    </modules>
     <packaging>pom</packaging>
+    <modules>
+        <module>spring-cloud-config</module>
+    </modules>
 
+    <artifactId>micro-spring-cloud</artifactId>
 
-    <name>wolfman-spring-micro</name>
-    <description>wolfman-spring-micro parent</description>
+    <name>micro-spring-cloud</name>
+    <description> micro-spring-cloud 学习笔记 </description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
