@@ -16,6 +16,7 @@
     <description>spring-cloud-config parent</description>
     <modules>
         <module>spring-cloud-config-server</module>
+        <module>spring-cloud-config-client</module>
     </modules>
 
 
