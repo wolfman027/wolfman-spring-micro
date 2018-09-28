@@ -1,0 +1,2 @@
+org.springframework.cloud.bootstrap.BootstrapConfiguration=\
+com.wolfman.micro.cloud.config.client.SpringCloudConfigClientAloneApplication.MyPropertySourceLocator
