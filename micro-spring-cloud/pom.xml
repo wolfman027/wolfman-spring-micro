@@ -11,6 +11,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>spring-cloud-config</module>
+        <module>spring-cloud-server-discovery</module>
     </modules>
 
     <artifactId>micro-spring-cloud</artifactId>
