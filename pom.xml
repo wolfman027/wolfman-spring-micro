@@ -10,6 +10,7 @@
     <modules>
         <module>micro-spring-boot</module>
         <module>micro-spring-cloud</module>
+        <module>spring-cloud-discovery-eureka</module>
     </modules>
     <packaging>pom</packaging>
 
