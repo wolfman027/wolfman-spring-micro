@@ -116,6 +116,8 @@ eureka.client.fetch-registry = false
 
 ![](https://github.com/wolfJava/wolfman-spring-micro/blob/master/micro-spring-cloud/spring-cloud-server-discovery/spring-cloud-server-discovery-eureka/img/eureka1.jpg?raw=true)
 
+#### 2 Eureka 实例
+
 
 
 
