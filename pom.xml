@@ -9,7 +9,7 @@
     <version>1.0-SNAPSHOT</version>
     <modules>
         <module>micro-spring-boot</module>
-        <module>micro-spring-cloud</module>
+        <module>spring-cloud-config</module>
         <module>spring-cloud-discovery-eureka</module>
     </modules>
     <packaging>pom</packaging>
