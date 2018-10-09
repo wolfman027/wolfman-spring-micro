@@ -114,11 +114,12 @@ eureka.client.fetch-registry = false
 
 但是这两个设置并不是影响作为服务器的使用，不过建议关闭，为了减少不必要的异常堆栈，减少错误的干扰（比如：系统异常和业务异常）
 
-![](https://github.com/wolfJava/wolfman-spring-micro/blob/master/micro-spring-cloud/spring-cloud-server-discovery/spring-cloud-server-discovery-eureka/img/eureka1.jpg?raw=true)
+![](https://github.com/wolfJava/wolfman-spring-micro/blob/master/spring-cloud-discovery-eureka/img/eureka1.jpg?raw=true)
 
 #### 2 Eureka 实例
 
-
+- 创建eureka服务端 https://github.com/wolfJava/wolfman-spring-micro/tree/master/spring-cloud-discovery-eureka/eureka-server
+- 创建eureka客户端
 
 
 
