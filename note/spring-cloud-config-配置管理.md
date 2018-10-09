@@ -2,9 +2,9 @@
 
 ### 一 理解图
 
-![](https://github.com/wolfJava/wolfman-spring-micro/blob/master/micro-spring-cloud/spring-cloud-config/img/spring-cloud-config-1.jpg?raw=true)
+![](https://github.com/wolfJava/wolfman-spring-micro/blob/master/spring-cloud-config/img/spring-cloud-config-1.jpg?raw=true)
 
-![](https://github.com/wolfJava/wolfman-spring-micro/blob/master/micro-spring-cloud/spring-cloud-config/img/spring-cloud-config-2.jpg?raw=true)
+![](https://github.com/wolfJava/wolfman-spring-micro/blob/master/spring-cloud-config/img/spring-cloud-config-2.jpg?raw=true)
 
 #### 1 国内知名开源项目
 
@@ -230,12 +230,3 @@ JDBC 太简单
 Zookeeper 比较适合做分布式配置
 
 自定义是高端玩家
-
-
-
-
-
-
-
-
-
