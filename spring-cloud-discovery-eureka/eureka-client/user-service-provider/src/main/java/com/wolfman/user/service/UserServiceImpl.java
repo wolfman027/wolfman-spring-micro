@@ -22,11 +22,13 @@ public class UserServiceImpl implements UserService  {
 
     @Override
     public boolean save(User user) {
+        System.out.println("保存了一个用户");
         return userRepository.save(user);
     }
 
     @Override
     public Collection<User> findAll() {
+        System.out.println("查询所有用户");
         return userRepository.findAll();
     }
 }

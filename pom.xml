@@ -12,6 +12,7 @@
         <module>spring-cloud-config</module>
         <module>spring-cloud-discovery-eureka</module>
         <module>spring-cloud-discovery-zk</module>
+        <module>spring-cloud-ribbon-client</module>
     </modules>
     <packaging>pom</packaging>
 
