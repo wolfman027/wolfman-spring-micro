@@ -1,308 +1,664 @@
-## spring cloud ribbon 服务负载均衡
+##  spring cloud hystrix 服务熔断
 
-### 一 Spring RestTemplate 负载均衡
+### 一 短路，熔断，服务保护
 
-#### 1 HTTP消息转换器：`HttpMessageConverter`
+![](https://github.com/wolfJava/wolfman-spring-micro/blob/master/spring-cloud-hystrix/img/hystrix-1.jpg?raw=true)
 
-自定义实现
+![](https://github.com/wolfJava/wolfman-spring-micro/blob/master/spring-cloud-hystrix/img/hystrix-2.jpg?raw=true)
 
-编码问题
+![](https://github.com/wolfJava/wolfman-spring-micro/blob/master/spring-cloud-hystrix/img/hystrix-3.jpg?raw=true)
 
-切换序列化/反序列化协议
+#### 1 服务短路（CircuitBreaker）
 
-#### 2 HTTP Client 适配工厂：`ClientHttpRequestFactory`
+QPS: Query Per Second 每秒钟的查询
 
-这个方面主要考虑大家的使用 HttpClient 偏好：
+TPS: Transaction Per Second 每秒钟的事务
 
-1. Spring 实现
+QPS: 经过全链路压测，计算单机极限QPS，集群 QPS = 单机 QPS * 集群机器数量 * 可靠性比率
 
-2. 1. SimpleClientHttpRequestFactory
+全链路压测除了压极限QPS，还有错误数量
 
-3. HttpClient 实现
+全链路：一个完整的业务流程操作
 
-4. 1. HttpComponentsClientHttpRequestFactory
+JMeter：可调整型比较灵活
 
-5. OkHttp 实现
+### 二 Hystrix Client
 
-6. 1. OkHttp3ClientHttpRequestFactory
-   2. OkHttpClientHttpRequestFactory
+**官网：https://github.com/Netflix/Hystrix**
+
+Hystrix 可以是服务端实现，也可以是客户端实现，类似于 AOP 封装：正常逻辑、容错处理。
+
+#### 1 激活 Hystrix
+
+通过@EnableHystrix激活
+
+Hystrix 配置信息wiki：https://github.com/Netflix/Hystrix/wiki/Configuration
+
+**注解方式实现（Annotation）：**
 
 ~~~java
-//举例说明
-RestTemplate restTemplate = 
-            new RestTemplate(new HttpComponentsClientHttpRequestFactory());
-Map<String, Object> data = 
-           restTemplate.getForObject("http://localhost:8080/env", Map.class);
-System.out.println(data);
-System.out.println(restTemplate.getForObject("http://localhost:8080/env", String.class));
+@RestController
+public class HystrixController {
+
+    private Random random = new Random();
+
+    /**
+     * 当{@link #helloWorld()} 方法调用超时或失败时，
+     * fallback方法{@link #errorContent()}作为替代返回
+     **/
+    @GetMapping("hello-world")
+    @HystrixCommand(
+            fallbackMethod = "errorContent",
+            commandProperties = {
+                    @HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds",
+                            value = "100")})
+    public String helloWorld() throws Exception{
+        //如果随机的时间 大于 100毫秒，那么触发容错
+        int value = random.nextInt(200);
+        System.out.println("hello world() costs " + value + "ms.");
+        Thread.sleep(value);
+        return "hello world!";
+    }
+    public String errorContent(){
+        return "fault";
+    }
+
+}
+
 ~~~
 
-**切换HTTP 通讯实现，提升性能**
-
-#### 3 HTTP 请求拦截器：`ClientHttpRequestInterceptor`
-
-**加深RestTemplate 拦截过程的**
-
-### 二 Netflix Ribbon
-
-`RestTemplate `增加一个`LoadBalancerInterceptor`，调用Netflix 中的`LoadBalander`实现，根据 Eureka 客户端应用获取目标应用 IP+Port 信息，轮训的方式调用。
-
-#### 1 实际请求客户端
-
-`LoadBalancerClient`
-
-​	`RibbonLoadBalancerClient`
-
-#### 2 负载均衡上下文
-
-`LoadBalancerContext`
-
-​	`RibbonLoadBalancerContext`
-
-#### 3 负载均衡器
-
-`ILoadBalancer`
-
-​	`BaseLoadBalancer`
-
-​	`DynamicServerListLoadBalancer`
-
-​	`ZoneAwareLoadBalancer`
-
-​	`NoOpLoadBalancer`
-
-#### 4 负载均衡规则：核心规则接口
-
-`IRule`
-
-随机规则：`RandomRule`
-
-最可用规则：`BestAvailableRule`
-
-轮训规则：`RoundRobinRule`
-
-重试实现：`RetryRule`
-
-客户端配置：`ClientConfigEnabledRoundRobinRule`
-
-可用性过滤规则：`AvailabilityFilteringRule`
-
-RT权重规则：`WeightedResponseTimeRule`
-
-规避区域规则：`ZoneAvoidanceRule`
-
-#### 5 PING策略
-
-核心策略接口：`IPingStrategy`
-
-PING 接口：
-
-​	`IPing`
-
-​		`NoOpPing`
-
-​		`DummyPing`
-
-​		`PingConstant`
-
-​	`PingUrl`
-
-​		`Discovery Client` 实现
-
-​		`NIWSDiscoveryPing`
-
-#### 6 具体事例见 github
-
-https://github.com/wolfJava/wolfman-spring-micro/tree/master/spring-cloud-discovery-eureka
-
-### 三 RestTemplate 原理与扩展
-
-Spring 核心 HTTP 消息转换器 `HttpMessageConverter`
-
-REST 自描述消息：媒体类型（MediaType）：text/html；text/xml；application/json；
-
-HTTP 协议特点：纯文本协议，自我描述
-
-- REST 服务端：序列化：对象->文本
-- REST 客户端：反序列化：文本（通讯）->对象（程序使用）
-
-#### 1 HttpMessageConverter 分析 
-
-**判断是否可读可写：**
-
-例如：clazz = Person.class
-
-```java
-public interface HttpMessageConverter<T> {
-	
-	boolean canRead(Class<?> clazz, @Nullable MediaType mediaType);
-	
-	boolean canWrite(Class<?> clazz, @Nullable MediaType mediaType);
-}
-```
-
-**当前支持的媒体类型：**
-
-例如：MappingJackson2HttpMessageConverter
+**编程方式实现（Annotation）：**
 
 ~~~java
-public interface HttpMessageConverter<T> {
-	List<MediaType> getSupportedMediaTypes();	
+ 	/**
+     * 当{@link #helloWorld()} 方法调用超时或失败时，
+     * fallback方法{@link #errorContent()}作为替代返回
+     **/
+    @GetMapping("hello-world2")
+    public String helloWorld2(){
+        return new HelloWorldCommand().execute();
+    }
+
+    /**
+     * 编程方式
+     **/
+    private class HelloWorldCommand extends com.netflix.hystrix.HystrixCommand<String>{
+        protected HelloWorldCommand() {
+            super(HystrixCommandGroupKey.Factory.asKey("HelloWorld")
+                    ,100);
+        }
+
+        @Override
+        protected String run() throws Exception {
+            // 如果随机时间 大于 100 ，那么触发容错
+            int value = random.nextInt(200);
+            System.out.println("helloWorld() costs " + value + " ms.");
+            Thread.sleep(value);
+            return "Hello,World";
+        }
+
+        @Override
+        protected String getFallback() {
+            return HystrixController.this.errorContent();
+        }
+
+    }
+~~~
+
+**对比 其他 Java 执行方式：**
+
+##### 1.1 Future
+
+~~~java
+public class FutureDemo {
+    public static void main(String[] args) {
+        Random random = new Random();
+        ExecutorService service = Executors.newFixedThreadPool(1);
+        Future future = service.submit(()->{ //正常流程
+            //如果随机的时间 大于 100毫秒，那么触发容错
+            int value = random.nextInt(200);
+            System.out.println("hello world() costs " + value + "ms.");
+            Thread.sleep(value);
+            System.out.println("Hello,World!");
+            return "Hello,World!";
+        });
+        try {
+            future.get(100, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            //超时流程
+            System.out.println("超时保护");
+        }
+        service.shutdown();
+    }
 }
 ~~~
 
-**反序列化：**
-
-```java
-public interface HttpMessageConverter<T> {
-	
-	T read(Class<? extends T> clazz, HttpInputMessage inputMessage)
-			throws IOException, HttpMessageNotReadableException;
-	
-}
-```
-
-特别提醒：Spring Web MVC Servlet
-
-Spring 在早期设计时，它就考虑到了去 Servlet 化。
-
-HttpInputMessage 类似于 HttpServletRequest
+##### 1.2 RxJava
 
 ~~~java
-public interface HttpInputMessage extends HttpMessage {
-
-	InputStream getBody() throws IOException;
-
-    //来自于 HttpMessage
-    HttpHeaders getHeaders();
+public class RxJavaDemo {
+    public static void main(String[] args) {
+        Random random = new Random();
+        Single.just("hello,world!")//just 发布数据
+                .subscribeOn(Schedulers.immediate())//订阅线程池 immediate = Thread.currentThread();
+                .subscribe(new Observer<String>() {
+                    @Override
+                    public void onCompleted() {//正常结束流程
+                        System.out.println("执行结束！");
+                    }
+                    @Override
+                    public void onError(Throwable throwable) {//异常流程
+                        System.out.println("熔断保护！");
+                    }
+                    @Override
+                    public void onNext(String s) { //数据消费 s= hello,world!
+                        int value = random.nextInt(200);
+                        if (value>100){
+                            throw new RuntimeException("Timeout!");
+                        }
+                        System.out.println("hello world() costs " + value + "ms.");
+                    }
+                });
+    }
 }
 ~~~
 
-**类比**
+#### 2 Health Endpoint(`/health`)
 
 ~~~java
-public interface HttpServletRequest {
-    //来自于 ServletRequest
-    ServletInputStream getInputStream() throws IOException;
-    
-    public Enumeration<String> getHeaders(String name);
-
-    public Enumeration<String> getHeaderNames();
-    
+{
+  status: "UP",
+  diskSpace: {
+    status: "UP",
+    total: 500096983040,
+    free: 304113217536,
+    threshold: 10485760
+  },
+  refreshScope: {
+    status: "UP"
+  },
+  hystrix: {
+    status: "UP"
+  }
 }
 ~~~
 
-**结论：**
+#### 3 激活熔断保护
 
-RestTemplet 利用 HttpMessageConverter 对一定媒体类型（JSON\xml\TEXT）序列化和反序列化；
+`@EnableCircuitBreaker` 激活 ：`@EnableHystrix ` + Spring Cloud 功能
 
-它不依赖于 Servlet API，它自定义实现，对于服务端而言，将 Servlet API 适配成 HttpInputMessage 以及 HttpOutputMessage。
+`@EnableHystrix` 激活，没有一些 Spring Cloud 功能，如 `/hystrix.stream` 端点
 
-RestTemplate 对应了多个 HttpMessageConverter，那么如何决策正确媒体类型。
+#### 4 Hystrix Endpoint(`/hystrix.stream`)
 
-#### 2 RestTemplate 在 HttpMessageConverter的设计 
+~~~java
+data: {
+    "type": "HystrixThreadPool",
+    "name": "HystrixDemoController",
+    "currentTime": 1509545957972,
+    "currentActiveCount": 0,
+    "currentCompletedTaskCount": 14,
+    "currentCorePoolSize": 10,
+    "currentLargestPoolSize": 10,
+    "currentMaximumPoolSize": 10,
+    "currentPoolSize": 10,
+    "currentQueueSize": 0,
+    "currentTaskCount": 14,
+    "rollingCountThreadsExecuted": 5,
+    "rollingMaxActiveThreads": 1,
+    "rollingCountCommandRejections": 0,
+    "propertyValue_queueSizeRejectionThreshold": 5,
+    "propertyValue_metricsRollingStatisticalWindowInMilliseconds": 10000,
+    "reportingHosts": 1
+}
+~~~
 
-```java
-public class RestTemplate extends InterceptingHttpAccessor implements RestOperations {
+#### 5 Spring Cloud Hystrix Dashboard
 
-    ...
-	// 
-    private final List<HttpMessageConverter<?>> messageConverters = new ArrayList<>();
-	
-    public RestTemplate() {
-		this.messageConverters.add(new ByteArrayHttpMessageConverter());
-		this.messageConverters.add(new StringHttpMessageConverter());
-		this.messageConverters.add(new ResourceHttpMessageConverter(false));
-		this.messageConverters.add(new SourceHttpMessageConverter<>());
-		this.messageConverters.add(new AllEncompassingFormHttpMessageConverter());
+激活：`@EnableHystrixDashboard`
 
-		if (romePresent) {
-			this.messageConverters.add(new AtomFeedHttpMessageConverter());
-			this.messageConverters.add(new RssChannelHttpMessageConverter());
-		}
+~~~text
+localhost:7070/hystrix/monitor?stream=http%3A%2F%2Flocalhost%3A8080%2Fhystrix.stream
+~~~
 
-		if (jackson2XmlPresent) {
-			this.messageConverters.add(new MappingJackson2XmlHttpMessageConverter());
-		}
-		else if (jaxb2Present) {
-			this.messageConverters.add(new Jaxb2RootElementHttpMessageConverter());
-		}
-
-		if (jackson2Present) {
-			this.messageConverters.add(new MappingJackson2HttpMessageConverter());
-		}
-		else if (gsonPresent) {
-			this.messageConverters.add(new GsonHttpMessageConverter());
-		}
-		else if (jsonbPresent) {
-			this.messageConverters.add(new JsonbHttpMessageConverter());
-		}
-
-		if (jackson2SmilePresent) {
-			this.messageConverters.add(new MappingJackson2SmileHttpMessageConverter());
-		}
-		if (jackson2CborPresent) {
-			this.messageConverters.add(new MappingJackson2CborHttpMessageConverter());
-		}
+~~~java
+@SpringBootApplication
+@EnableHystrixDashboard
+public class SpringCloudHystrixDashboardDemoApplication {
+	public static void main(String[] args) {
+		SpringApplication.run(SpringCloudHystrixDashboardDemoApplication.class, args);
 	}
+}
+~~~
 
-    ...
+### 三 实现服务熔断（Future）
+
+#### 1 Spring Cloud Hystrix Client
+
+> 注意：方法签名
+>
+> - 访问限定符
+> - 方法返回类型
+> - 方法名称
+> - 方法参数
+>   - 方法数量
+>   - 方法类型 + 顺序
+>   - ~~方法名称（编译时预留，IDE，Debug）~~
+
+#### 2 低级版本（无容错实现）
+
+~~~java
+/**
+ *  低级版本 + 无容错实现
+ */
+@RestController
+@RequestMapping("/hystrix")
+public class HystrixServerFirstController {
+
+    private final static Random random = new Random();
+
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+    /**
+     * 简易版本
+     * @param message
+     * @return
+     * @throws InterruptedException
+     */
+    @GetMapping("/say")
+    public String say(@RequestParam String message) throws Exception {
+        Future<String> future = executorService.submit(()->{
+            return doSay(message);
+        });
+        //100 毫秒超时
+        String returnValue =  future.get(100, TimeUnit.MILLISECONDS);
+        return returnValue;
+    }
+
+    private String doSay(String message) throws InterruptedException {
+        int value = random.nextInt(200);
+        System.out.println("say() costs " + value + "ms.");
+        Thread.sleep(value);
+        String returnValue = "Say："+message;
+        return returnValue;
+    }
+
+    public String errorContent(String message){
+        return "Fault";
+    }
 
 }
-```
+~~~
 
-- 添加内建 HttpMessageConverter 实现
-- 有条件的添加第三方库 HttpMessageConverter 整合实现
+#### 3 低级版本（有容错实现）
 
-> 问题场景一： http://localhost:8080/person -> XML 而不是 jackson
+~~~java
+/**
+ *  低级版本 + 有容错实现
+ */
+@RestController
+@RequestMapping("/hystrix/second")
+public class HystrixSecondController {
 
-> Postman，curl 场景最为明显
+    private final static Random random = new Random();
 
-> 没有传递请求头，无从选择媒体类型
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
-> 假设 Person 既能被 XML 读取，又能被 JSON 读取。哪个 HttpMessageConverter 实现类在前，就先返回哪一个
+    @GetMapping("/say")
+    public String say(@RequestParam String message) throws Exception {
+        Future<String> future = executorService.submit(()->{
+            return doSay(message);
+        });
+        //100 毫秒超时
+        String returnValue = null;
+        try {
+            returnValue =  future.get(100, TimeUnit.MILLISECONDS);
+        }catch (InterruptedException | ExecutionException | TimeoutException e){
+            //超级容错 = 执行错误 或
+            returnValue = errorContent(message);
+        }
+        return returnValue;
+    }
 
-> Content-Type text/html; charset=utf-8
+    private String doSay(String message) throws InterruptedException {
+        int value = random.nextInt(200);
+        System.out.println("say() costs " + value + "ms.");
+        Thread.sleep(value);
+        String returnValue = "Say："+message;
+        return returnValue;
+    }
+    
+    public String errorContent(String message){
+        return "Fault";
+    }
+}
+~~~
 
-#### 3 RestTemplate 扩展
+#### 4 中级版本
 
-**扩展 HTTP 客户端**
+~~~java
+/**
+ *  中级版本
+ */
+@RestController
+@RequestMapping("/hystrix/middle")
+public class HystrixMiddleController {
 
-- ClientHttpRequestFactory 
-  - Spring 实现
-    - SimpleClientHttpRequestFactory
-  - HttpClient
-    - HttpComponentsClientHttpRequestFactory
-  - OkHttp
-    - OkHttp3ClientHttpRequestFactory
-    - OkHttpClientHttpRequestFactory
+    private final static Random random = new Random();
 
-微服务要使用轻量级的协议，比如REST
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
-Spring Cloud RestTemplate 核心的调用器
+    @GetMapping("/say")
+    public String say(@RequestParam String message) throws Exception {
+        Future<String> future = executorService.submit(()->{
+            return doSay(message);
+        });
+        //100 毫秒 超时
+        String returnValue = null;
+        try{
+            returnValue = future.get(100, TimeUnit.MILLISECONDS);
+        }catch (TimeoutException e){
+            future.cancel(true);
+            throw e;
+        }
+        return returnValue;
+    }
 
-#### 4 RestTemplate 整合 Zookeeper
+    private String doSay(String message) throws InterruptedException {
+        int value = random.nextInt(200);
+        System.out.println("say() costs " + value + "ms.");
+        Thread.sleep(value);
+        String returnValue = "Say："+message;
+        System.out.println(returnValue);
+        return returnValue;
+    }
+}
+~~~
 
-详见git上代码：https://github.com/wolfJava/wolfman-spring-micro/tree/master/spring-cloud-ribbon-client
+#### 5 高级版本（无注解实现）
 
-@Controller -> 负载均衡
+~~~java
+/**
+ *  高级版本
+ */
+@RestController
+@RequestMapping("/hystrix/advanced")
+public class HystrixAdvancedController {
 
-@Controller -> restTemplate
+    private final static Random random = new Random();
 
-RestTemplate 管理负载均衡
+    @GetMapping("/say")
+    public String say(@RequestParam String message) throws Exception {
+        return doSay(message);
+    }
 
-RestTemplate.getForObject("/${app-name}/uri...");
+    private String doSay(String message) throws InterruptedException {
+        int value = random.nextInt(200);
+        System.out.println("say() costs " + value + "ms.");
+        Thread.sleep(value);
+        String returnValue = "Say："+message;
+        System.out.println(returnValue);
+        return returnValue;
+    }
 
-### 四 自我总结
+}
+~~~
 
-实现流程：
+~~~java
+/**
+ * 高级版本的aop
+ */
+@Aspect
+@Component
+public class HystrixAdvancedControllerAspect {
 
-1. 根据注册中心，获取服务器列表
-2. 运用请求规则，选择其中一台服务器
-3. 利用 restTemplate 发送请求到服务器
-4. 输出响应
+    private ExecutorService executorService = Executors.newFixedThreadPool(20);
 
-其中，自定义实现 restTemplate 的过滤器（ClientHttpRequestInterceptor），来过请求，把1、2、3、4步骤放入到了过滤器中实现。
+    @Around("execution(* com.wolfman.micro.hystrix.controller.HystrixAdvancedController.say(..)) && " +
+            "args(message)")
+    public Object advancedSayInTimeout(ProceedingJoinPoint point, String message) throws Throwable {
+        Future<Object> future = executorService.submit(()->{
+            Object returnValue = null;
+            try{
+                returnValue = point.proceed(new String[]{message});
+            }catch (Throwable throwable){
+            }
+            return returnValue;
+        });
 
-@LoadBalanced 利用注解来过滤，注入方和声明方同时使用，声明使用的restTemplate的类型。
+        //100 毫秒 超时
+        Object returnValue = null;
+        try{
+            returnValue = future.get(100, TimeUnit.MILLISECONDS);
+        }catch (TimeoutException e){
+            future.cancel(true);//取消执行
+            returnValue = errorContent("");
+            //throw e;
+        }
+        return returnValue;
+    }
+
+    public String errorContent(String message){
+        return "Fault";
+    }
+
+    @PreDestroy
+    public void destory(){
+        executorService.shutdown();
+    }
+}
+~~~
+
+#### 6 高级版本 + 有注解实现
+
+~~~java
+@Target(ElementType.METHOD)//标注在方法
+@Retention(RetentionPolicy.RUNTIME) //运行时保存注解信息
+@Documented
+public @interface CircuitBreaker {
+    /**
+     * 超时时间
+     * @return 设置超时时间
+     */
+    long timeout();
+}
+~~~
+
+~~~java
+/**
+ *  高级版本 + 注解
+ */
+@RestController
+@RequestMapping("/hystrix/advanced/annotation")
+public class HystrixAdvancedAnnotationController {
+
+    private final static Random random = new Random();
+
+    @GetMapping("/say")
+    @CircuitBreaker(timeout = 100)
+    public String say(@RequestParam String message) throws Exception {
+        return doSay(message);
+    }
+
+    private String doSay(String message) throws InterruptedException {
+        int value = random.nextInt(200);
+        System.out.println("say() costs " + value + "ms.");
+        Thread.sleep(value);
+        String returnValue = "Say："+message;
+        System.out.println(returnValue);
+        return returnValue;
+    }
+}
+~~~
+
+~~~java
+/**
+ *  高级版本 + 注解 aop
+ */
+@Aspect
+@Component
+public class HystrixAdvancedAnnotationControllerAspect {
+
+    private ExecutorService executorService = Executors.newFixedThreadPool(20);
+
+    private Object doInvoke(ProceedingJoinPoint point, String message, long timeout) throws Throwable {
+
+        Future<Object> future = executorService.submit(()->{
+            Object returnValue = null;
+            try{
+                returnValue = point.proceed(new String[]{message});
+            }catch (Throwable throwable){
+            }
+            return returnValue;
+        });
+
+        //100 毫秒 超时
+        Object returnValue = null;
+        try{
+            returnValue = future.get(timeout, TimeUnit.MILLISECONDS);
+        }catch (TimeoutException e){
+            future.cancel(true);//取消执行
+            returnValue = errorContent("");
+            //throw e;
+        }
+        return returnValue;
+    }
+
+//    @Around(value = "execution(* com.wolfman.micro.hystrix.controller.HystrixAdvancedAnnotationController.say(..)) && " +
+//            "args(message) && @annotation(circuitBreaker)")
+//    public Object advancedAnnotationSayInTimeout(ProceedingJoinPoint point, String message, CircuitBreaker circuitBreaker) throws Throwable {
+//        long timeout = circuitBreaker.timeout();
+//        return doInvoke(point,message,timeout);
+//    }
+
+    /**
+     * 利用反射来做
+     * @param point
+     * @param message
+     * @return
+     * @throws Throwable
+     */
+    @Around("execution(* com.wolfman.micro.hystrix.controller.HystrixAdvancedAnnotationController.say(..)) && " +
+            "args(message)")
+    public Object advancedAnnotationSayInTimeout(ProceedingJoinPoint point, String message) throws Throwable {
+        long timeout = -1;
+        if (point instanceof MethodInvocationProceedingJoinPoint){
+            MethodInvocationProceedingJoinPoint methodPoint = (MethodInvocationProceedingJoinPoint) point;
+            MethodSignature signature = (MethodSignature) methodPoint.getSignature();
+            Method method = signature.getMethod();
+            CircuitBreaker circuitBreaker = method.getAnnotation(CircuitBreaker.class);
+            timeout = circuitBreaker.timeout();
+        }
+        return doInvoke(point,message,timeout);
+    }
+
+
+    public String errorContent(String message){
+        return "Fault";
+    }
+
+    @PreDestroy
+    public void destory(){
+        executorService.shutdown();
+    }
+}
+~~~
+
+#### 7 高级版本 + 注解信号量方式
+
+~~~java
+@Target(ElementType.METHOD)//标注在方法
+@Retention(RetentionPolicy.RUNTIME) //运行时保存注解信息
+@Documented
+public @interface SemaphoreCircuitBreaker {
+
+    /**
+     * 信号量
+     * @return 设置超时时间
+     */
+    int value();
+
+}
+~~~
+
+~~~java
+/**
+ *  高级版本 + 注解信号量
+ */
+@RestController
+@RequestMapping("/hystrix/advanced/annotation/semaphore")
+public class HystrixAdvancedAnnotationSemaphoreController {
+
+    private final static Random random = new Random();
+
+    /**
+     * 高级版本 + 注解（信号量）
+     * @param message
+     * @return
+     * @throws Exception
+     */
+    @GetMapping("/say")
+    @SemaphoreCircuitBreaker(1)
+    public String say(@RequestParam String message) throws Exception {
+        return doSay(message);
+    }
+
+    private String doSay(String message) throws InterruptedException {
+        int value = random.nextInt(200);
+        System.out.println("say() costs " + value + "ms.");
+        Thread.sleep(value);
+        String returnValue = "Say："+message;
+        System.out.println(returnValue);
+        return returnValue;
+    }
+
+}
+~~~
+
+~~~java
+/**
+ * 高级版本 + 注解信号量方式
+ */
+@Aspect
+@Component
+public class HystrixAdvancedAnnotationSemaphoreControllerAspect {
+
+    private ExecutorService executorService = Executors.newFixedThreadPool(20);
+
+    private volatile Semaphore semaphore = null;
+
+    @Around("execution(* com.wolfman.micro.hystrix.controller.HystrixAdvancedAnnotationSemaphoreController.say(..)) && " +
+            "args(message) && @annotation(circuitBreaker)")
+    public Object advancedAnnotationSayInTimeout(ProceedingJoinPoint point,
+                                                 String message,
+                                                 SemaphoreCircuitBreaker circuitBreaker) throws Throwable {
+        int value = circuitBreaker.value();
+        if (semaphore == null){
+            semaphore = new Semaphore(value);
+        }
+        Object returnValue = null;
+        try{
+            if (semaphore.tryAcquire()){
+                returnValue = point.proceed(new Object[]{message});
+                Thread.sleep(1000);
+            }else {
+                returnValue = errorContent(message);
+            }
+        }finally {
+            semaphore.release();
+        }
+        return returnValue;
+    }
+
+    public String errorContent(String message){
+        return "Fault";
+    }
+
+    @PreDestroy
+    public void destory(){
+        executorService.shutdown();
+    }
+
+}
+~~~
 
