@@ -13,6 +13,7 @@
         <module>spring-cloud-discovery-eureka</module>
         <module>spring-cloud-discovery-zk</module>
         <module>spring-cloud-ribbon-client</module>
+        <module>spring-cloud-hystrix</module>
     </modules>
     <packaging>pom</packaging>
 
