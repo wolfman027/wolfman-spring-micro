@@ -283,7 +283,7 @@ Spring Cloud RestTemplate 核心的调用器
 
 #### 4 RestTemplate 整合 Zookeeper
 
-详见git上代码：
+详见git上代码：https://github.com/wolfJava/wolfman-spring-micro/tree/master/spring-cloud-ribbon-client
 
 @Controller -> 负载均衡
 
@@ -293,5 +293,16 @@ RestTemplate 管理负载均衡
 
 RestTemplate.getForObject("/${app-name}/uri...");
 
+### 四 自我总结
 
+实现流程：
+
+1. 根据注册中心，获取服务器列表
+2. 运用请求规则，选择其中一台服务器
+3. 利用 restTemplate 发送请求到服务器
+4. 输出响应
+
+其中，自定义实现 restTemplate 的过滤器（ClientHttpRequestInterceptor），来过请求，把1、2、3、4步骤放入到了过滤器中实现。
+
+@LoadBalanced 利用注解来过滤，注入方和声明方同时使用，声明使用的restTemplate的类型。
 
