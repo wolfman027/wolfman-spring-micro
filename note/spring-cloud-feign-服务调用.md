@@ -497,51 +497,57 @@ public String feignSay(@RequestParam String message){
 
 #### 2 实现 @FeignRestClient
 
+~~~java
+/**
+ * feign rest client 注解
+ */
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface FeignRestClient {
+    /**
+     * REST 服务应用名称
+     * @return
+     */
+    String name();
+}
+~~~
 
+#### 3 实现 @FeignRestClient 服务接口
 
+~~~java
+@FeignRestClient(name = "spring-cloud-server-application")
+public interface FeignSayingRestService {
+    @GetMapping("/say")
+    public String say(@RequestParam("message") String message);
+}
+~~~
 
+#### 4 实现 @FeignEnableRestClient 模块
 
+~~~java
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+@Documented
+@Import(FeignRestClientsRegistrar.class)
+public @interface FeignEnableRestClient {
+    /**
+     * 指定 @RestClient 接口
+     * @return
+     */
+    Class<?>[] clients() default {};
+}
+~~~
 
+#### 5 实现 FeignRestClientsRegistrar
 
+- 指定 @FeignRestClient 服务接口
+  - 识别 @FeignRestClient
+  - 过滤所有 @RequestMapping 方法
+- 将 @FeignRestClient 服务接口注册Bean
+  - @FeignRestClient 服务接口想成代理实现
+    - say 方法执行 REST 请求
 
+实现详见代码
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+> Zuul : IP:Port/serviceName/uri

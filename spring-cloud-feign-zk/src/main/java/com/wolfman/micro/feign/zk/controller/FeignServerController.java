@@ -1,6 +1,7 @@
 package com.wolfman.micro.feign.zk.controller;
 
 import com.wolfman.micro.feign.zk.service.feign.clients.SayingService;
+import com.wolfman.micro.feign.zk.service.rest.clients.FeignSayingRestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -17,13 +18,13 @@ public class FeignServerController {
         return sayingService.say(message);
     }
 
-//    @Autowired
-//    private FeignSayingRestService feignSayingRestService;
-//
-//    @GetMapping("/myself/feign/say")
-//    public String myselfFeignSay(@RequestParam String message){
-//        return feignSayingRestService.say(message);
-//    }
+    @Autowired
+    private FeignSayingRestService feignSayingRestService;
+
+    @GetMapping("/myself/feign/say")
+    public String myselfFeignSay(@RequestParam String message){
+        return feignSayingRestService.say(message);
+    }
 
 
 }
