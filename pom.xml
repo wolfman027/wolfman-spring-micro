@@ -16,6 +16,7 @@
         <module>spring-cloud-hystrix</module>
         <module>spring-cloud-feign-eureka</module>
         <module>spring-cloud-feign-zk</module>
+        <module>spring-cloud-gateway</module>
     </modules>
     <packaging>pom</packaging>
 
