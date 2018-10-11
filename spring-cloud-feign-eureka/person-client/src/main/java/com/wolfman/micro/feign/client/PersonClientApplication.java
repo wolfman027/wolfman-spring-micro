@@ -11,9 +11,9 @@ import org.springframework.cloud.netflix.ribbon.RibbonClient;
 import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
-//@EnableEurekaClient
+@EnableEurekaClient
 @EnableFeignClients(clients = PersonService.class)
-@RibbonClient(value = "person-service", configuration = PersonClientApplication.class)
+//@RibbonClient(value = "person-service", configuration = PersonClientApplication.class)
 @EnableHystrix
 public class PersonClientApplication {
     public static void main(String[] args) {
