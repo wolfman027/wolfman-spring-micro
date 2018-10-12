@@ -1,5 +1,7 @@
 ## spring cloud gateway 服务网关
 
+![](https://github.com/wolfJava/wolfman-spring-micro/blob/master/spring-cloud-gateway/img/zuul-1.jpg?raw=true)
+
 ### 一 Zuul 基本使用 — eureka
 
 #### 1 Zuul 基本使用
@@ -421,6 +423,8 @@ eureka.client.serviceUrl.defaultZone=\
 > 4. [spring-cloud-zuul -> person-service](http://localhost:7070/person-service/person/find/all)
 
 ### 二 Spring Cloud Gateway
+
+![](https://github.com/wolfJava/wolfman-spring-micro/blob/master/spring-cloud-gateway/img/zuul-2.jpg?raw=true)
 
 Spring WebFlux 相像
 
