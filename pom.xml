@@ -10,8 +10,7 @@
     <modules>
         <module>micro-spring-boot</module>
         <module>spring-cloud-config</module>
-        <module>spring-cloud-discovery-eureka</module>
-        <module>spring-cloud-discovery-zk</module>
+        <module>spring-cloud-discovery</module>
         <module>spring-cloud-ribbon-client</module>
         <module>spring-cloud-hystrix</module>
         <module>spring-cloud-feign-eureka</module>
