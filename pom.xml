@@ -13,10 +13,9 @@
         <module>spring-cloud-discovery</module>
         <module>spring-cloud-ribbon-client</module>
         <module>spring-cloud-hystrix</module>
-        <module>spring-cloud-feign-eureka</module>
-        <module>spring-cloud-feign-zk</module>
         <module>spring-cloud-gateway</module>
         <module>spring-cloud-stream</module>
+        <module>spring-cloud-feign</module>
     </modules>
     <packaging>pom</packaging>
 
