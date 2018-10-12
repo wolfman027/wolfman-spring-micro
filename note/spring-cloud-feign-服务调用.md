@@ -14,7 +14,7 @@ Feign：原生并不是 Spring Web MVC的实现，基于JAX-RS（Java REST 规�
 
 假设，有一个java接口PersonService，Feign可以将其声明是以HTTP方式调用的。
 
-![](https://github.com/wolfJava/wolfman-spring-micro/blob/master/spring-cloud-feign-eureka/img/feign-1.jpg?raw=true)
+![](https://github.com/wolfJava/wolfman-spring-micro/blob/master/spring-cloud-feign/img/feign-1.jpg?raw=true)
 
 #### 需要服务组件（SOA Service Oriented Architecture：面向服务的架构）
 
