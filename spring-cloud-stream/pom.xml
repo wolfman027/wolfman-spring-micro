@@ -11,6 +11,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>stream-spring-kafka</module>
+        <module>stream-cloud-kafka-binder</module>
     </modules>
 
     <artifactId>spring-cloud-stream</artifactId>
